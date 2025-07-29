@@ -311,7 +311,5 @@ For any questions or inquiries, please contact:
 
 
 
-\* \*\*Your Name/Handle\*\*: \[Itszeeshanrajput]([https://github.com/YOUR\_GITHUB\_USERNAME](https://github.com/Itszeeshanrajput))
-
 \* \*\*Email\*\*: \[itszeeshanrajput@gmail.com]
 
