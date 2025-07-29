@@ -311,7 +311,7 @@ For any questions or inquiries, please contact:
 
 
 
-\* \*\*Your Name/Handle\*\*: \[Your GitHub Username](https://github.com/YOUR\_GITHUB\_USERNAME)
+\* \*\*Your Name/Handle\*\*: \[Itszeeshanrajput]([https://github.com/YOUR\_GITHUB\_USERNAME](https://github.com/Itszeeshanrajput))
 
-\* \*\*Email\*\*: \[your.email@example.com](mailto:your.email@example.com)
+\* \*\*Email\*\*: \[itszeeshanrajput@gmail.com]
 
