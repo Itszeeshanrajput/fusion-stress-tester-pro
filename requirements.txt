@@ -1,0 +1,5 @@
+customtkinter
+psutil
+matplotlib
+requests
+pynvml
