@@ -86,36 +86,7 @@ Follow these steps to get Fusion Stress Tester PRO up and running on your Window
 
 You have two options:
 
-\* \*\*Option A: Download ZIP (Easiest)\*\*
-
-&nbsp;   \* Go to the \[Fusion Stress Tester PRO GitHub page](https://github.com/YOUR\_GITHUB\_USERNAME/fusion-stress-tester-pro) (replace `YOUR\_GITHUB\_USERNAME` with your actual GitHub username).
-
-&nbsp;   \* Click the green \*\*"Code"\*\* button.
-
-&nbsp;   \* Select \*\*"Download ZIP"\*\*.
-
-&nbsp;   \* Once downloaded, extract the ZIP file to a convenient location on your computer (e.g., your Desktop). You'll get a folder like `fusion-stress-tester-pro-main`.
-
-
-
-\* \*\*Option B: Clone with Git (For Users with Git Installed)\*\*
-
-&nbsp;   \* If you have Git installed, open your command prompt (search for `cmd` in the Start Menu) or Git Bash.
-
-&nbsp;   \* Navigate to where you want to save the project (e.g., `cd Desktop`).
-
-&nbsp;   \* Run:
-
-&nbsp;       ```bash
-
-&nbsp;       git clone \[https://github.com/YOUR\_GITHUB\_USERNAME/fusion-stress-tester-pro.git](https://github.com/YOUR\_GITHUB\_USERNAME/fusion-stress-tester-pro.git)
-
-&nbsp;       cd fusion-stress-tester-pro
-
-&nbsp;       ```
-
-&nbsp;       (Replace `YOUR\_GITHUB\_USERNAME` with your actual GitHub username).
-
+ Download ZIP (Easiest)\*\*
 
 
 \### Step 2: Install Python (If You Don't Have It)
