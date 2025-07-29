@@ -1,1 +1,21 @@
-
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+env/
+venv/
+*.env
+.idea/
+.vscode/
+*.log
+*.tmp
+*.bak
+*.swp
+*stress_test_file.tmp # Your stress test temp file
+*.json # Be careful with .json if you store sensitive data, otherwise include
+profile.json # Your default profile name
+.DS_Store # macOS
+Thumbs.db # Windows
+# Add any other specific files or directories you want to ignore
