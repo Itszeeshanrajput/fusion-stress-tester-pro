@@ -268,6 +268,7 @@ class StressTesterApp(ctk.CTk):
 
         # --- UI Setup ---
         self.create_widgets()
+        self._update_ssd_checkbox_color() # Set initial color
         self.log_message("Application started.")
         self.update_stats() # Start monitoring loop
 
@@ -342,7 +343,7 @@ class StressTesterApp(ctk.CTk):
         self.disk_mb_entry.insert(0, "500") # Default 500MB
         self.disk_mb_entry.pack(padx=10, pady=2, fill="x")
         self.ssd_endurance_checkbox = ctk.CTkCheckBox(disk_frame, text="Enable SSD Endurance Mode (Caution!)",
-                                                        hover_color="orange") # Removed text_color_checked="red"
+                                                        hover_color="orange", command=self._update_ssd_checkbox_color)
         self.ssd_endurance_checkbox.pack(padx=10, pady=(5,5), anchor="w")
         self.disk_button = ctk.CTkButton(disk_frame, text="Start Disk Stress", command=self.toggle_disk_stress, fg_color="blue")
         self.disk_button.pack(padx=10, pady=5, fill="x")
@@ -548,6 +549,15 @@ class StressTesterApp(ctk.CTk):
         self.log_text = ctk.CTkTextbox(log_frame, wrap="word", height=150)
         self.log_text.pack(padx=10, pady=(0, 10), fill="both", expand=True)
         self.log_text.configure(state="disabled") # Make read-only
+
+    def _update_ssd_checkbox_color(self):
+        """Updates the SSD endurance checkbox text color based on its state."""
+        if self.ssd_endurance_checkbox.get():
+            # Checked - set color to red as a warning
+            self.ssd_endurance_checkbox.configure(text_color="red")
+        else:
+            # Unchecked - revert to default color from theme
+            self.ssd_endurance_checkbox.configure(text_color=None)
 
     def log_message(self, message):
         timestamp = time.strftime("[%Y-%m-%d %H:%M:%S]")
