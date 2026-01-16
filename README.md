@@ -215,7 +215,7 @@ If you have an NVIDIA GPU and want to use the GPU stress testing features, you'l
 
 
 
-\## 🚀 Usage
+# 🚀 User Guide
 
 
 
@@ -240,6 +240,40 @@ Once all installation steps are complete, you can run the application.
 5\.  \*\*Monitor\*\*: Observe real-time metrics and performance graphs on the respective tabs.
 
 6\.  \*\*Safety\*\*: Keep an eye on the "Safety \& Monitoring" tab and consider enabling automatic safety stops.
+
+
+
+\### The Interface
+
+
+
+The application is divided into three main sections:
+
+
+
+\* \*\*Stress Control (Left Panel)\*\*: This is where you configure and control the stress tests.
+
+    \* \*\*Global Controls\*\*: Use "Start All" and "Stop All" to manage all tests at once.
+
+    \* \*\*Intensity\*\*: Select an overall intensity level ("Easy", "Medium", "Hard", "Extreme") that affects GPU stress.
+
+    \* \*\*Component Sections\*\*: Each component (CPU, RAM, Disk, etc.) has its own frame where you can set specific parameters (e.g., number of CPU cores, amount of RAM to allocate).
+
+    \* \*\*Test Profiles\*\*: Save your current configuration to a file for later use, or load a previously saved profile.
+
+
+
+\* \*\*Monitoring (Right Panel)\*\*: This section shows you the status of your system.
+
+    \* \*\*System Status Tab\*\*: Displays live metrics for CPU usage (overall and per-core), RAM usage, disk usage, CPU temperature, GPU status, and network activity.
+
+    \* \*\*Safety & Monitoring Tab\*\*: Configure safety limits here. If the CPU temperature, available RAM, or free disk space crosses these thresholds, all stress tests will automatically stop to protect your hardware.
+
+    \* \*\*Performance Graphs Tab\*\*: A real-time graph that plots key performance metrics over time. You can use the toolbar to zoom and pan, and you can export the collected data to a CSV file for analysis.
+
+
+
+\* \*\*System Logs (Bottom Panel)\*\*: All important events, warnings, and errors are logged here with a timestamp.
 
 
 
