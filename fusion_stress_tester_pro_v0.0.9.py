@@ -269,7 +269,10 @@ class StressTesterApp(ctk.CTk):
         # --- UI Setup ---
         self.create_widgets()
         self.log_message("Application started.")
-        self.update_stats() # Start monitoring loop
+        self.monitoring_active = True
+        self.monitoring_thread = threading.Thread(target=self.monitoring_loop, daemon=True)
+        self.monitoring_thread.start()
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def create_widgets(self):
         # Header with PRO branding
@@ -804,121 +807,130 @@ class StressTesterApp(ctk.CTk):
 
 
     # --- Monitoring and Safety Systems ---
-    def update_stats(self):
+    def on_closing(self):
+        self.monitoring_active = False
+        self.destroy()
+
+    def monitoring_loop(self):
+        """The main loop for gathering stats in a background thread."""
+        while self.monitoring_active:
+            stats = self.gather_stats()
+            # Schedule UI updates on the main thread
+            self.after(0, self.update_ui_with_stats, stats)
+            time.sleep(self.record_interval)
+
+    def gather_stats(self):
+        """Gathers all system stats and returns them in a dictionary."""
+        stats = {}
         # CPU Usage
-        cpu_percent = psutil.cpu_percent(interval=None) # Overall CPU usage
-        cpu_percent_per_core = psutil.cpu_percent(interval=None, percpu=True) # Per-core usage
-        self.cpu_label.configure(text=f"CPU Usage: {cpu_percent:.1f}% (Avg)")
-        for i, percent in enumerate(cpu_percent_per_core):
-            if i < len(self.cpu_cores_labels): # Update existing labels
-                self.cpu_cores_labels[i].configure(text=f"  Core {i}: {percent:.1f}%")
-
+        stats['cpu_percent'] = psutil.cpu_percent(interval=None) # Overall CPU usage
+        stats['cpu_percent_per_core'] = psutil.cpu_percent(interval=None, percpu=True) # Per-core usage
         # RAM Usage
-        ram = psutil.virtual_memory()
-        self.ram_label.configure(text=f"RAM Usage: {ram.percent:.1f}% ({ram.used / (1024**3):.2f}GB / {ram.total / (1024**3):.2f}GB)")
-        ram_free_gb = ram.available / (1024**3)
-
-        # Disk Usage (for root partition)
+        stats['ram'] = psutil.virtual_memory()
+        # Disk Usage
         try:
-            disk_usage = psutil.disk_usage('/')
-            self.disk_label.configure(text=f"Disk Usage: {disk_usage.percent:.1f}% ({disk_usage.used / (1024**3):.2f}GB / {disk_usage.total / (1024**3):.2f}GB)")
-            disk_free_gb = disk_usage.free / (1024**3)
+            stats['disk_usage'] = psutil.disk_usage('/')
         except Exception as e:
-            self.disk_label.configure(text=f"Disk Usage: N/A ({e})")
-            disk_free_gb = float('inf') # Set to inf to prevent false safety trigger
-
-
-        # CPU Temperature (platform-dependent)
-        avg_temp = None
+            stats['disk_usage'] = None
+            stats['disk_error'] = e
+        # CPU Temperature
+        stats['avg_temp'] = None
         try:
             temps = psutil.sensors_temperatures()
             if temps:
-                cpu_temp_found = False
                 for name, entries in temps.items():
                     for entry in entries:
-                        # Prioritize 'package id', 'cpu', 'core' temperatures
                         if 'package id' in entry.label.lower() or 'cpu' in entry.label.lower() or 'core' in entry.label.lower():
                             if entry.current is not None:
-                                avg_temp = entry.current
-                                cpu_temp_found = True
+                                stats['avg_temp'] = entry.current
                                 break
-                    if cpu_temp_found:
+                    if stats['avg_temp'] is not None:
                         break
-                if avg_temp is not None:
-                    self.cpu_temp_label.configure(text=f"CPU Temp: {avg_temp:.1f}°C")
-                else:
-                    self.cpu_temp_label.configure(text="CPU Temp: N/A (No relevant sensor found)")
-            else:
-                self.cpu_temp_label.configure(text="CPU Temp: N/A (No sensor data)")
         except Exception as e:
-            self.cpu_temp_label.configure(text=f"CPU Temp: Error ({e})")
-            avg_temp = float('nan') # Store as NaN for graph if error
-
-
-        # GPU Monitoring (NVIDIA via pynvml, or basic PyTorch if NVML fails)
-        gpu_temp = float('nan')
-        gpu_percent = float('nan')
-        gpu_mem_allocated_gb = float('nan')
-        
-        if GPU_AVAILABLE_NVML: # Prefer NVML for comprehensive NVIDIA data
+            stats['temp_error'] = e
+        # GPU Monitoring
+        stats['gpu_temp'] = float('nan')
+        stats['gpu_percent'] = float('nan')
+        stats['gpu_mem_allocated_gb'] = float('nan')
+        stats['gpu_status_text'] = "GPU: N/A (No GPU detected)"
+        if GPU_AVAILABLE_NVML:
             try:
                 pynvml.nvmlInit()
                 device_count = pynvml.nvmlDeviceGetCount()
                 if device_count > 0:
-                    handle = pynvml.nvmlDeviceGetHandleByIndex(0) # Monitor first GPU
-                    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMP_GPU)
-                    gpu_temp = temp_info
-
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                    stats['gpu_temp'] = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMP_GPU)
                     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-                    gpu_percent = utilization.gpu
-
+                    stats['gpu_percent'] = utilization.gpu
                     mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                    gpu_mem_allocated_gb = mem_info.used / (1024**3)
-                    gpu_mem_total_gb = mem_info.total / (1024**3)
-
-                    self.gpu_status_label.configure(text=f"GPU: {gpu_percent:.1f}% Util, {gpu_temp:.1f}°C, {gpu_mem_allocated_gb:.2f}GB Used")
+                    stats['gpu_mem_allocated_gb'] = mem_info.used / (1024**3)
+                    stats['gpu_status_text'] = f"GPU: {stats['gpu_percent']:.1f}% Util, {stats['gpu_temp']:.1f}°C, {stats['gpu_mem_allocated_gb']:.2f}GB Used"
                 else:
-                    self.gpu_status_label.configure(text="GPU: N/A (No NVIDIA GPU detected by NVML)")
+                    stats['gpu_status_text'] = "GPU: N/A (No NVIDIA GPU detected by NVML)"
             except pynvml.NVMLError as e:
-                self.gpu_status_label.configure(text=f"GPU: NVML Error ({e}). Trying PyTorch...")
-                # Fallback to PyTorch if NVML fails (e.g., driver issues)
+                stats['gpu_status_text'] = f"GPU: NVML Error ({e}). Trying PyTorch..."
                 if GPU_AVAILABLE_TORCH:
                     try:
                         allocated = torch.cuda.memory_allocated(0) / (1024**3)
                         cached = torch.cuda.memory_reserved(0) / (1024**3)
-                        self.gpu_status_label.configure(text=f"GPU (PyTorch): {allocated:.2f}GB Used / {cached:.2f}GB Reserved")
-                        gpu_mem_allocated_gb = allocated
+                        stats['gpu_mem_allocated_gb'] = allocated
+                        stats['gpu_status_text'] = f"GPU (PyTorch): {allocated:.2f}GB Used / {cached:.2f}GB Reserved"
                     except Exception as e_torch:
-                        self.gpu_status_label.configure(text=f"GPU: N/A (PyTorch Error: {e_torch})")
+                        stats['gpu_status_text'] = f"GPU: N/A (PyTorch Error: {e_torch})"
             finally:
-                try: pynvml.nvmlShutdown() # Always try to shutdown NVML
-                except pynvml.NVMLError: pass # Ignore if already shut down or not initialized
-        elif GPU_AVAILABLE_TORCH: # If NVML not available but PyTorch is (e.g., AMD GPU with PyTorch ROCm, or Intel GPU)
+                try: pynvml.nvmlShutdown()
+                except pynvml.NVMLError: pass
+        elif GPU_AVAILABLE_TORCH:
             try:
                 allocated = torch.cuda.memory_allocated(0) / (1024**3)
                 cached = torch.cuda.memory_reserved(0) / (1024**3)
-                self.gpu_status_label.configure(text=f"GPU (PyTorch): {allocated:.2f}GB Used / {cached:.2f}GB Reserved")
-                gpu_mem_allocated_gb = allocated
+                stats['gpu_mem_allocated_gb'] = allocated
+                stats['gpu_status_text'] = f"GPU (PyTorch): {allocated:.2f}GB Used / {cached:.2f}GB Reserved"
             except Exception as e_torch:
-                self.gpu_status_label.configure(text=f"GPU: N/A (PyTorch Error: {e_torch})")
-        else:
-            self.gpu_status_label.configure(text="GPU: N/A (No GPU detected)")
-
-        # Network Usage (in Mbps)
+                stats['gpu_status_text'] = f"GPU: N/A (PyTorch Error: {e_torch})"
+        # Network Usage
         net_io = psutil.net_io_counters()
         time_diff = time.time() - self._last_record_time
         bytes_sent_diff = net_io.bytes_sent - self._last_net_io_counters.bytes_sent
         bytes_recv_diff = net_io.bytes_recv - self._last_net_io_counters.bytes_recv
-
-        upload_mbps = (bytes_sent_diff / (1024 * 1024)) * 8 / time_diff if time_diff > 0 else 0 # MBps to Mbps
-        download_mbps = (bytes_recv_diff / (1024 * 1024)) * 8 / time_diff if time_diff > 0 else 0 # MBps to Mbps
-
-        self.net_up_label.configure(text=f"Net Upload: {upload_mbps:.2f} Mbps")
-        self.net_down_label.configure(text=f"Net Download: {download_mbps:.2f} Mbps")
+        stats['upload_mbps'] = (bytes_sent_diff / (1024 * 1024)) * 8 / time_diff if time_diff > 0 else 0
+        stats['download_mbps'] = (bytes_recv_diff / (1024 * 1024)) * 8 / time_diff if time_diff > 0 else 0
         self._last_net_io_counters = net_io
+        return stats
 
+    def update_ui_with_stats(self, stats):
+        """Updates the UI with the latest stats from the background thread."""
+        # Update labels
+        self.cpu_label.configure(text=f"CPU Usage: {stats['cpu_percent']:.1f}% (Avg)")
+        for i, percent in enumerate(stats['cpu_percent_per_core']):
+            if i < len(self.cpu_cores_labels):
+                self.cpu_cores_labels[i].configure(text=f"  Core {i}: {percent:.1f}%")
 
-        # --- Safety System Updates ---
+        ram = stats['ram']
+        self.ram_label.configure(text=f"RAM Usage: {ram.percent:.1f}% ({ram.used / (1024**3):.2f}GB / {ram.total / (1024**3):.2f}GB)")
+
+        if stats['disk_usage']:
+            disk_usage = stats['disk_usage']
+            self.disk_label.configure(text=f"Disk Usage: {disk_usage.percent:.1f}% ({disk_usage.used / (1024**3):.2f}GB / {disk_usage.total / (1024**3):.2f}GB)")
+        else:
+            self.disk_label.configure(text=f"Disk Usage: N/A ({stats.get('disk_error', '')})")
+
+        if 'temp_error' in stats:
+            self.cpu_temp_label.configure(text=f"CPU Temp: Error ({stats['temp_error']})")
+        elif stats['avg_temp'] is not None:
+            self.cpu_temp_label.configure(text=f"CPU Temp: {stats['avg_temp']:.1f}°C")
+        else:
+            self.cpu_temp_label.configure(text="CPU Temp: N/A")
+
+        self.gpu_status_label.configure(text=stats['gpu_status_text'])
+        self.net_up_label.configure(text=f"Net Upload: {stats['upload_mbps']:.2f} Mbps")
+        self.net_down_label.configure(text=f"Net Download: {stats['download_mbps']:.2f} Mbps")
+
+        # Safety System Updates
+        avg_temp = stats['avg_temp']
+        ram_free_gb = ram.available / (1024**3)
+        disk_free_gb = stats['disk_usage'].free / (1024**3) if stats['disk_usage'] else float('inf')
+
         self.current_temp_label.configure(text=f"Current CPU Temp: {avg_temp:.1f}°C" if avg_temp is not None else "Current CPU Temp: N/A")
         self.current_ram_label.configure(text=f"Current RAM Free: {ram_free_gb:.2f} GB")
         self.current_disk_label.configure(text=f"Current Disk Free: {disk_free_gb:.2f} GB")
@@ -926,40 +938,35 @@ class StressTesterApp(ctk.CTk):
         if self.is_stressing and self.safety_monitoring_active.get():
             self.perform_safety_checks(avg_temp, ram_free_gb, disk_free_gb)
 
-        # --- Benchmarking Data Collection (with rolling window) ---
+        # Benchmarking Data Collection
         current_time = time.time()
-        # Record data only if enough time has passed since last record, or if it's the first record
         if current_time - self._last_record_time >= self.record_interval:
             self.performance_data["timestamp"].append(current_time)
-            self.performance_data["cpu_percent"].append(cpu_percent)
-            self.performance_data["cpu_percent_per_core"].append(cpu_percent_per_core)
+            self.performance_data["cpu_percent"].append(stats['cpu_percent'])
+            self.performance_data["cpu_percent_per_core"].append(stats['cpu_percent_per_core'])
             self.performance_data["ram_percent"].append(ram.percent)
-            self.performance_data["disk_percent"].append(disk_usage.percent if 'disk_usage' in locals() else 0.0)
+            self.performance_data["disk_percent"].append(stats['disk_usage'].percent if stats['disk_usage'] else 0.0)
             self.performance_data["cpu_temp"].append(avg_temp if avg_temp is not None else float('nan'))
-            self.performance_data["gpu_mem_allocated"].append(gpu_mem_allocated_gb)
-            self.performance_data["gpu_temp"].append(gpu_temp)
-            self.performance_data["gpu_percent"].append(gpu_percent)
-            self.performance_data["network_sent_mbps"].append(upload_mbps)
-            self.performance_data["network_recv_mbps"].append(download_mbps)
+            self.performance_data["gpu_mem_allocated"].append(stats['gpu_mem_allocated_gb'])
+            self.performance_data["gpu_temp"].append(stats['gpu_temp'])
+            self.performance_data["gpu_percent"].append(stats['gpu_percent'])
+            self.performance_data["network_sent_mbps"].append(stats['upload_mbps'])
+            self.performance_data["network_recv_mbps"].append(stats['download_mbps'])
 
             # Apply rolling window
             if len(self.performance_data["timestamp"]) > self.max_graph_data_points:
                 for key in self.performance_data:
-                    # For cpu_percent_per_core, need to pop the list itself
                     if key == "cpu_percent_per_core":
                         if self.performance_data[key]:
                             self.performance_data[key].pop(0)
-                    else:
+                    elif self.performance_data[key]:
                         self.performance_data[key].pop(0)
             
-            self._last_record_time = current_time # Update timestamp AFTER collecting data
+            self._last_record_time = current_time
 
             self.update_graphs()
             if self.enable_cloud_api_checkbox.get():
                 threading.Thread(target=self.send_metrics_to_cloud, daemon=True).start()
-
-
-        self.after(self.record_interval * 1000, self.update_stats) # Schedule next update
 
 
     def perform_safety_checks(self, current_temp, current_ram_free, current_disk_free):
