@@ -10,9 +10,39 @@
 
 **Professional System Stress Testing & Performance Benchmarking Tool**
 
-[Features](#-features) • [Installation](#️-installation) • [Usage](#-usage) • [Screenshots](#-screenshots) • [Contributing](#-contributing)
+[Download](#-download) • [Features](#-features) • [Installation](#️-installation) • [Usage](#-usage) • [Contributing](#-contributing)
 
 </div>
+
+---
+
+## 📥 Download
+
+### Windows Executable (Recommended for Beginners)
+
+**No Python installation required!**
+
+[![Download Latest Release](https://img.shields.io/badge/Download-Windows%20EXE-blue?style=for-the-badge&logo=windows)](https://github.com/Itszeeshanrajput/fusion-stress-tester-pro/releases/latest)
+
+**Quick Start:**
+1. Download `FusionStressTesterPRO_v1.0.0_Windows.zip`
+2. Extract all files
+3. Double-click `FusionStressTesterPRO.exe`
+4. Read `USER_GUIDE.md` for instructions
+
+**System Requirements:**
+- Windows 10/11 (64-bit)
+- 4GB RAM minimum (8GB recommended)
+- 200MB free disk space
+
+### Run from Source (Advanced Users)
+
+```bash
+git clone https://github.com/Itszeeshanrajput/fusion-stress-tester-pro.git
+cd fusion-stress-tester-pro
+pip install -r requirements.txt
+python fusion_stress_tester_pro_v0.0.9.py
+```
 
 ---
 
