@@ -12,19 +12,20 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def _simple_cpu_worker(stop_event):
+    """Simplified CPU worker for testing (module-level for pickling)"""
+    iterations = 0
+    while not stop_event.is_set() and iterations < 100:
+        _ = 1 + 1
+        iterations += 1
+
+
 def test_cpu_stress_worker_concept():
     """Test CPU stress worker concept (without GUI)"""
-    def simple_cpu_worker(stop_event):
-        """Simplified CPU worker for testing"""
-        iterations = 0
-        while not stop_event.is_set() and iterations < 100:
-            _ = 1 + 1
-            iterations += 1
-    
     stop_event = multiprocessing.Event()
     
     # Start worker in a process
-    process = multiprocessing.Process(target=simple_cpu_worker, args=(stop_event,))
+    process = multiprocessing.Process(target=_simple_cpu_worker, args=(stop_event,))
     process.start()
     
     # Let it run briefly
