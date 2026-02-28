@@ -1190,14 +1190,16 @@ class StressTesterApp(ctk.CTk):
             self.log_message(f"ERROR: Failed to save profile: {e}")
             messagebox.showerror("Save Profile Error", f"Failed to save profile: {e}")
 
-    def load_profile(self):
+    def load_profile(self, file_path=None):
         try:
-            file_path = filedialog.askopenfilename(
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                initialfile=PROFILE_FILE_NAME,
-                title="Load Test Profile"
-            )
+            if not file_path:
+                file_path = filedialog.askopenfilename(
+                    defaultextension=".json",
+                    filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                    initialfile=PROFILE_FILE_NAME,
+                    title="Load Test Profile"
+                )
+
             if file_path:
                 with open(file_path, 'r') as f:
                     profile = json.load(f)
@@ -1210,7 +1212,10 @@ class StressTesterApp(ctk.CTk):
                 self.ram_mb_entry.insert(0, profile.get("ram_allocation_mb", "1024"))
                 self.disk_mb_entry.delete(0, tk.END)
                 self.disk_mb_entry.insert(0, profile.get("disk_file_size_mb", "500"))
-                self.ssd_endurance_checkbox.set(profile.get("ssd_endurance_mode", False))
+                if profile.get("ssd_endurance_mode", False):
+                    self.ssd_endurance_checkbox.select()
+                else:
+                    self.ssd_endurance_checkbox.deselect()
                 self.target_ip_entry.delete(0, tk.END)
                 self.target_ip_entry.insert(0, profile.get("network_target_ip", "127.0.0.1"))
                 self.target_port_entry.delete(0, tk.END)
@@ -1224,7 +1229,10 @@ class StressTesterApp(ctk.CTk):
                 self.disk_free_threshold_entry.delete(0, tk.END)
                 self.disk_free_threshold_entry.insert(0, profile.get("disk_free_threshold", "10.0"))
                 self.safety_monitoring_active.set(profile.get("safety_monitoring_active", True))
-                self.enable_cloud_api_checkbox.set(profile.get("cloud_api_reporting_active", False))
+                if profile.get("cloud_api_reporting_active", False):
+                    self.enable_cloud_api_checkbox.select()
+                else:
+                    self.enable_cloud_api_checkbox.deselect()
                 
                 self.log_message(f"Test profile loaded from: {file_path}")
                 messagebox.showinfo("Load Profile", f"Test profile loaded successfully from:\n{file_path}")
