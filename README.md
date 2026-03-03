@@ -30,7 +30,7 @@
 3. Double-click `FusionStressTesterPRO.exe`
 4. Read `USER_GUIDE.md` for instructions
 
-> Maintainers: publishing a GitHub Release (or pushing a `v*` tag) triggers the `Build and Attach Windows EXE` workflow, which uploads both `FusionStressTesterPRO.exe` and a Windows ZIP package to release assets. You can also run it manually with a required `tag` input to attach/refresh assets on an existing release.
+> Maintainers: publishing a GitHub Release now triggers the `Build and Attach Windows EXE` workflow, which automatically uploads `FusionStressTesterPRO.exe` to the release assets.
 
 **System Requirements:**
 - Windows 10/11 (64-bit)

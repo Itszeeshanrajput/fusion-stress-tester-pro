@@ -26,6 +26,9 @@ jobs:
     runs-on: windows-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.tag || github.ref_name }}
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
@@ -87,3 +90,14 @@ jobs:
           fail_on_unmatched_files: true
           overwrite_files: true
           generate_release_notes: false
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FusionStressTesterPRO-windows-exe
+          path: dist/FusionStressTesterPRO.exe
+
+      - name: Upload EXE to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/FusionStressTesterPRO.exe
