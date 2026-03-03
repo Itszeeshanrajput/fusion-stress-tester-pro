@@ -46,15 +46,36 @@ CLOUD_API_ENDPOINT = "https://your-cloud-api.com/metrics" # REPLACE with your ac
 CLOUD_API_KEY = "YOUR_API_KEY_HERE" # REPLACE with your actual API key (consider more secure storage in production)
 PROFILE_FILE_NAME = "stress_profile.json" # Default name for saving profiles
 
+
+def _build_allocation_chunks(total_mb, chunk_mb=10):
+    """Return chunk sizes (in bytes) that add up to ``total_mb``.
+
+    Ensures at least one allocation attempt for any positive ``total_mb`` value.
+    """
+    if total_mb <= 0:
+        return []
+
+    full_chunks = total_mb // chunk_mb
+    remainder_mb = total_mb % chunk_mb
+
+    chunks = [chunk_mb * 1024 * 1024] * full_chunks
+    if remainder_mb:
+        chunks.append(remainder_mb * 1024 * 1024)
+    if not chunks:
+        chunks.append(total_mb * 1024 * 1024)
+    return chunks
+
 # --- Stress Test Worker Functions (Moved outside class for easier multiprocessing) ---
 
 def cpu_stress_worker(stop_event):
     """Worker function for CPU stress. Runs in a separate process."""
     print(f"CPU stress worker (PID: {os.getpid()}) started.")
     try:
+        accumulator = 0.0
         while not stop_event.is_set():
-            # Keep CPU busy with a simple calculation
-            _ = 1 + 1
+            # Keep CPU busy with math operations that are not trivially optimized away.
+            for value in range(1, 1000):
+                accumulator += math.sqrt(value) * math.sin(value)
     except Exception as e:
         print(f"CPU stress worker (PID: {os.getpid()}) error: {e}")
     finally:
@@ -62,19 +83,20 @@ def cpu_stress_worker(stop_event):
 
 def ram_stress_worker(allocation_mb, stop_event, log_callback=None):
     """Worker function for RAM stress."""
-    bytes_to_allocate = allocation_mb * 1024 * 1024
+    if allocation_mb <= 0:
+        if log_callback:
+            log_callback("RAM stress worker skipped: allocation must be greater than 0MB.")
+        return
+
+    chunk_sizes = _build_allocation_chunks(allocation_mb)
     allocated_list = []
     if log_callback:
         log_callback(f"RAM stress worker started (allocating ~{allocation_mb}MB).")
     try:
         while not stop_event.is_set():
-            # Allocate in smaller chunks to avoid a single huge allocation failure
-            # and to allow for more granular control/release if needed.
-            chunk_size = 10 * 1024 * 1024 # 10MB chunks
-            num_chunks = bytes_to_allocate // chunk_size
             current_allocated_bytes = 0
 
-            for i in range(num_chunks):
+            for chunk_size in chunk_sizes:
                 if stop_event.is_set():
                     break
                 try:
@@ -97,6 +119,11 @@ def ram_stress_worker(allocation_mb, stop_event, log_callback=None):
 
 def disk_stress_worker(file_size_mb, stop_event, endurance_mode=False, log_callback=None):
     """Worker function for Disk stress."""
+    if file_size_mb <= 0:
+        if log_callback:
+            log_callback("Disk I/O worker skipped: file size must be greater than 0MB.")
+        return
+
     data_chunk = os.urandom(1024 * 1024)  # 1MB chunk
     file_path = DISK_STRESS_FILE_NAME
 

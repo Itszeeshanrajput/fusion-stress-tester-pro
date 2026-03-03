@@ -5,6 +5,18 @@ All notable changes to Fusion Stress Tester PRO will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- RAM stress worker now handles small positive allocations (e.g., 1-9MB) correctly instead of silently doing no allocations.
+- RAM and Disk workers now fail fast with clear log messages when passed non-positive sizes.
+
+### Changed
+- CPU stress worker now uses heavier math operations for a more consistent synthetic load.
+
+### DevOps
+- Added a release workflow that builds `FusionStressTesterPRO.exe` on Windows and attaches it automatically to published GitHub Releases.
+
 ## [1.0.0] - 2026-02-25
 
 ### 🎉 Major Release - Complete Modernization
