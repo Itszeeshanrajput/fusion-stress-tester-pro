@@ -7,9 +7,16 @@ import threading
 import time
 import os
 import sys
+from pathlib import Path
+import importlib.util
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = PROJECT_ROOT / "fusion_stress_tester_pro_v0.0.9.py"
+
+spec = importlib.util.spec_from_file_location("fusion_stress_tester", MODULE_PATH)
+fusion_stress_tester = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fusion_stress_tester)
 
 
 def _simple_cpu_worker(stop_event):
@@ -124,6 +131,36 @@ def test_stop_events_creation():
     for key, event in stop_events.items():
         assert event is not None
         assert not event.is_set()
+
+
+def test_build_allocation_chunks_handles_small_values():
+    """Any positive MB value should produce at least one allocation chunk."""
+    chunks = fusion_stress_tester._build_allocation_chunks(1)
+
+    assert len(chunks) == 1
+    assert chunks[0] == 1 * 1024 * 1024
+
+
+def test_ram_worker_rejects_non_positive_size():
+    """RAM worker should return early and log clear guidance for invalid inputs."""
+    logs = []
+    stop_event = threading.Event()
+
+    fusion_stress_tester.ram_stress_worker(0, stop_event, logs.append)
+
+    assert logs
+    assert "allocation must be greater than 0MB" in logs[0]
+
+
+def test_disk_worker_rejects_non_positive_file_size():
+    """Disk worker should return early and log clear guidance for invalid sizes."""
+    logs = []
+    stop_event = threading.Event()
+
+    fusion_stress_tester.disk_stress_worker(0, stop_event, log_callback=logs.append)
+
+    assert logs
+    assert "file size must be greater than 0MB" in logs[0]
 
 
 if __name__ == "__main__":
