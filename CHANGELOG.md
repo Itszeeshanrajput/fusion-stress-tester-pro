@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### DevOps
 - Added a release workflow that builds `FusionStressTesterPRO.exe` on Windows and attaches it automatically to GitHub Releases.
 - Added tag-push and manual-dispatch support so assets can be attached to existing releases, plus a packaged Windows ZIP artifact.
+- Improved release upload reliability by enabling asset overwrite and safe tag-to-filename handling for reruns.
 
 ## [1.0.0] - 2026-02-25
 

@@ -11,11 +11,15 @@ on:
     inputs:
       tag:
         description: 'Existing release tag to upload assets to (example: v1.0.0)'
-        required: false
+        required: true
         type: string
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-exe-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-windows-exe:
@@ -47,6 +51,12 @@ jobs:
         shell: bash
         run: test -f dist/FusionStressTesterPRO.exe
 
+      - name: Prepare safe artifact names
+        shell: bash
+        run: |
+          SAFE_TAG="${RELEASE_TAG//\//-}"
+          echo "SAFE_TAG=${SAFE_TAG}" >> "$GITHUB_ENV"
+
       - name: Create release zip package
         shell: bash
         run: |
@@ -56,15 +66,15 @@ jobs:
           cp LICENSE release/
           cp docs/USER_GUIDE.md release/
           cd release
-          powershell -Command "Compress-Archive -Path FusionStressTesterPRO.exe,README.md,LICENSE,USER_GUIDE.md -DestinationPath FusionStressTesterPRO_${RELEASE_TAG}_Windows.zip -Force"
+          powershell -Command "Compress-Archive -Path FusionStressTesterPRO.exe,README.md,LICENSE,USER_GUIDE.md -DestinationPath FusionStressTesterPRO_${env:SAFE_TAG}_Windows.zip -Force"
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FusionStressTesterPRO-windows-build-${{ env.RELEASE_TAG }}
+          name: FusionStressTesterPRO-windows-build-${{ env.SAFE_TAG }}
           path: |
             dist/FusionStressTesterPRO.exe
-            release/FusionStressTesterPRO_${{ env.RELEASE_TAG }}_Windows.zip
+            release/FusionStressTesterPRO_${{ env.SAFE_TAG }}_Windows.zip
 
       - name: Upload assets to GitHub Release
         if: env.RELEASE_TAG != ''
@@ -73,6 +83,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           files: |
             dist/FusionStressTesterPRO.exe
-            release/FusionStressTesterPRO_${{ env.RELEASE_TAG }}_Windows.zip
+            release/FusionStressTesterPRO_${{ env.SAFE_TAG }}_Windows.zip
           fail_on_unmatched_files: true
+          overwrite_files: true
           generate_release_notes: false
