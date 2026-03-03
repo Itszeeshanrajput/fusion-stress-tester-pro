@@ -30,6 +30,8 @@
 3. Double-click `FusionStressTesterPRO.exe`
 4. Read `USER_GUIDE.md` for instructions
 
+> Maintainers: publishing a GitHub Release (or pushing a `v*` tag) triggers the `Build and Attach Windows EXE` workflow, which uploads both `FusionStressTesterPRO.exe` and a Windows ZIP package to release assets. You can also run it manually with a `tag` input to attach assets to an existing release.
+
 **System Requirements:**
 - Windows 10/11 (64-bit)
 - 4GB RAM minimum (8GB recommended)
@@ -302,4 +304,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Made with ❤️ by [Zeeshan Rajput](https://github.com/Itszeeshanrajput)
 
 </div>
-

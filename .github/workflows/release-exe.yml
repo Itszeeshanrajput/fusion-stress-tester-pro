@@ -1,0 +1,78 @@
+name: Build and Attach Windows EXE
+
+on:
+  release:
+    types: [published, edited]
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to upload assets to (example: v1.0.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        shell: bash
+        run: python build_exe.py
+
+      - name: Verify executable exists
+        shell: bash
+        run: test -f dist/FusionStressTesterPRO.exe
+
+      - name: Create release zip package
+        shell: bash
+        run: |
+          mkdir -p release
+          cp dist/FusionStressTesterPRO.exe release/
+          cp README.md release/
+          cp LICENSE release/
+          cp docs/USER_GUIDE.md release/
+          cd release
+          powershell -Command "Compress-Archive -Path FusionStressTesterPRO.exe,README.md,LICENSE,USER_GUIDE.md -DestinationPath FusionStressTesterPRO_${RELEASE_TAG}_Windows.zip -Force"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FusionStressTesterPRO-windows-build-${{ env.RELEASE_TAG }}
+          path: |
+            dist/FusionStressTesterPRO.exe
+            release/FusionStressTesterPRO_${{ env.RELEASE_TAG }}_Windows.zip
+
+      - name: Upload assets to GitHub Release
+        if: env.RELEASE_TAG != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            dist/FusionStressTesterPRO.exe
+            release/FusionStressTesterPRO_${{ env.RELEASE_TAG }}_Windows.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: false
