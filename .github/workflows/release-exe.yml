@@ -1,13 +1,31 @@
 name: Build and Attach Windows EXE
 
 on:
-  workflow_dispatch:
   release:
-    types: [published]
+    types: [published, edited]
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to upload assets to (example: v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-exe-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.tag || github.ref_name }}
 jobs:
   build-windows-exe:
     runs-on: windows-latest
@@ -36,6 +54,42 @@ jobs:
         shell: bash
         run: test -f dist/FusionStressTesterPRO.exe
 
+      - name: Prepare safe artifact names
+        shell: bash
+        run: |
+          SAFE_TAG="${RELEASE_TAG//\//-}"
+          echo "SAFE_TAG=${SAFE_TAG}" >> "$GITHUB_ENV"
+
+      - name: Create release zip package
+        shell: bash
+        run: |
+          mkdir -p release
+          cp dist/FusionStressTesterPRO.exe release/
+          cp README.md release/
+          cp LICENSE release/
+          cp docs/USER_GUIDE.md release/
+          cd release
+          powershell -Command "Compress-Archive -Path FusionStressTesterPRO.exe,README.md,LICENSE,USER_GUIDE.md -DestinationPath FusionStressTesterPRO_${env:SAFE_TAG}_Windows.zip -Force"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FusionStressTesterPRO-windows-build-${{ env.SAFE_TAG }}
+          path: |
+            dist/FusionStressTesterPRO.exe
+            release/FusionStressTesterPRO_${{ env.SAFE_TAG }}_Windows.zip
+
+      - name: Upload assets to GitHub Release
+        if: env.RELEASE_TAG != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            dist/FusionStressTesterPRO.exe
+            release/FusionStressTesterPRO_${{ env.SAFE_TAG }}_Windows.zip
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          generate_release_notes: false
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
